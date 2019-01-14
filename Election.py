@@ -5,7 +5,16 @@ import math
 import itertools
 
 class Election():
-    """docstring for ."""
+    """Simulates a single-district election, with a number of possible different electoral systems.
+    Votes cast are treated as party votes.
+    
+    Attributes:
+        name : Name string of the election
+        votetotals: number of votes cast with each preference sequence
+        firstprefs: number of votes cast by first preference only
+        seattotals: number of seats by party/alternative
+        positions: political compass (economic, social) positions of parties (used for multi-election simulations)
+    """
     def __init__(self, name=""):
         self.name = name
         self.votetotals = Counter()
@@ -43,13 +52,15 @@ class Election():
         self.seattotals.clear()
         self.positions.clear()
 
-
+    # tot = total
     def totVote(self):
         return sum(self.votetotals.values())
 
     def totSeats(self):
         return sum(self.seattotals.values())
 
+    # returns the candidate with the most votes in the /stat/ count (first preference votes by default). ties are resolved randomly.
+    # return format: winner's (name, votes, margin of victory, number of winners)
     def plurality(self,stat="firstprefs") :
         if stat == "firstprefs" :
             stat = self.firstprefs
@@ -79,6 +90,7 @@ class Election():
         else:
             return {n: stat[n]*100./totvotes for n in stat.keys()}
 
+    # result of a one-to-one match between candidate/parties a and b
     def preference(self,a,b,*args):
         tot = {a:0,b:0}
         for vt in self.votetotals.keys():
@@ -97,6 +109,7 @@ class Election():
             print("%s :\t%d\t(%.2f pct)" % (tots[1], tot[tots[1]], pcts[tots[1]]))
         return self.plurality(tot)
 
+    # set of all candidates (aka alternatives or parties) for which any vote has been given at any preference
     def allCands(self):
         allcands = set()
         for vt in self.votetotals.keys() :
@@ -104,6 +117,16 @@ class Election():
                 allcands.add(v)
         return list(allcands)
 
+    # [BEGIN] Single-winner electoral systems
+    
+    # All functions (electoral systems) in this section have the following return format:
+    # winner's (name, votes, margin of victory, number of winners)
+
+    # At least the following arg options apply to each function:
+    #   "s": print details of the result
+    #   "stot": return the winner's name string only
+
+    # First Past the Post
     def FPTP(self,*args) :
         if "s" in args:
             print("An election in the %s constituency\nhas been conducted under First Past The Post."%self.name)
@@ -120,6 +143,7 @@ class Election():
             return {winner[0]:1}
         return winner
 
+    # Two-Round System (more precisely the contingency vote)
     def TRS(self,*args) :
         finnum = 2;
         if len(args) > 0 :
@@ -191,6 +215,7 @@ class Election():
             return {finalwinner[0]:1}
         return finalwinner
 
+    # Instant Runoff Voting
     def IRV(self,*args) :
         cands = self.firstprefs.keys()
         eliminated = [];
@@ -243,7 +268,12 @@ class Election():
                     print("\n%s :\t%d\t(%.2f pct)" % (v[0],v[1],pcts[v[0]]))
                 print("\n")
 
+    # The borda count
     def borda(self,*args):
+        '''Function-specific arg options:
+        "frac": use the Dowdall borda count, which is used in Nauru. The original formula is used by default.
+        "stat": return a Counter of the borda point counts of all parties/candidates/alternatives, which can be used e.g. for seat allocation.
+        '''
         if "s" in args:
             print("An election in the %s constituency\nhas been conducted under the Borda Count." % self.name)
         maxi = len(max(self.votetotals.keys(),key=lambda l:len(l)))-1
@@ -275,7 +305,12 @@ class Election():
             return bcount
         return bordaplur
 
+    # Ranked Pairs (a Condorcet method)
     def RP(self,*args):
+        '''Function-specific arg options:
+        "paths": print the preference path (graph) formed at each one-to-one match
+        "rank": return a list of alternatives in the order of their final RP ranking 
+        '''
         if "s" in args:
             print("An election in the %s constituency\nhas been conducted under the Ranked Pairs system." % self.name)
             print("The pair preferences, sorted by the votes of the winner, are as follows:")
@@ -324,7 +359,7 @@ class Election():
                     print("")
             elif "s" in args:
                 print("The pair is not locked in due to the cycle that would be created.")
-        #finranking = max(paths,key=lambda l:len(l))
+        
         if "s" in args:
             print("\nThe final ranking is %s"%finranking[0]),
             for r in finranking[1:] :
@@ -338,8 +373,27 @@ class Election():
             return self.preference(finranking[0],finranking[1])
 
 
-
+    # [END] Single-winner electoral systems
+    
+    # Multi-winner seat distribution between alternatives (parties) under Party-list Proportional representation
     def listPR(self,seats,*args):
+        '''Arg options:
+        Seat allocation method to be used:
+        
+            "lr": largest remainder method with a Hare quota
+            "lrd": largest remainder method with a Droop quota
+            "hh": Huntington-Hill method
+        
+        If none of the above is used, a highest averages method is used,
+        and the first numeric argument is used as the interval between divisors for consecutive numbers of seats:
+            1 for the D'Hondt method (default, also used if no numeric argument is given in args)
+            2 for the Sante-Lague method
+            0.5 for Imperiali
+            0 for Plurality Block Voting (winner takes all)
+
+        The smaller this interval is, the less proportional the result.
+
+        '''
         prseats = {x: 0 for x in self.firstprefs.keys()}
         filledseats = 0
         if "lr" in args or "lrd" in args:
@@ -386,6 +440,14 @@ class Election():
             print("\n")
         return prseats
 
+    # An Instant-Runoff Variant of the listPR function above. 
+    
+    # Here, if any party gets 0 seats, it is eliminated from the count, its votes are
+    # redistributed to next-preference choices, and the seats are reallocated according to the new vote totals.
+    # This process is repeated until all remaining parties are represented.
+
+    # This system is not currently used anywhere in the world (as far as the author is aware), 
+    # the Single Transferable Vote being the closest real-life approximation. 
     def IRVlistPR(self,seats,*args):
         runningvotes = dict(self.firstprefs.items())
         irvprseats = listPR(runningvotes,seats,*[x for x in args if not x=="s"])
@@ -438,18 +500,16 @@ class Election():
                     print("\nAll voters are represented at the final stage (%d)"%stage)
         return irvprseats
 
-
+    # Assigns the seat results under a specified electoral system as the seat total of the election
     def runElection(self,*args) :
+        '''args:
+        first argument : electoral system, i.e. the name of the function implementing it, i.e. "FPTP" for first past the post, "IRV" for instant runoff voting etc.
+        subsequent arguments: parameters of the electoral system (mainly used for listPR/IRVlistPR), which are passed on to the function implementing the electoral system
+        '''
         self.seattotals.clear()
-        #if args[0] == "FPTP" :
-        #    self.seattotals[self.FPTP(*args)[0]] = 1;
-        #elif args[0] == "TRS" :
-        #    self.seattotals[self.TRS(*args)[0]] = 1;
-        #elif args[0] == "IRV" :
-        #    self.seattotals[self.IRV(*args)[0]] = 1;
         if args[0] == "listPR" :
             if "pop" in args or "eq" in args:
-                self.seattotals = self.listPR(*([args[-1]]+list(args)[2:-1]))
+                self.seattotals = self.listPR(*([args[-1]]+list(args)[2:-1])) # when arguments are passed down from a SuperElection
             else:
                 self.seattotals = self.listPR(*list(args)[1:]);
         elif args[0] == "IRVlistPR":
@@ -460,7 +520,7 @@ class Election():
         else:
             self.seattotals = getattr(self,args[0])(*(list(args)[1:]+["stot"]))
 
-            
+# List of dictionary items (key-value pairs) sorted in a decreasing order of value
 def valsorted(stat):
     return sorted(stat.items(),key=lambda l:l[1],reverse=True)
 
@@ -471,55 +531,63 @@ def percentages(stat,rounding=-1) :
     else:
         return {n: stat[n]*100./totvotes for n in stat.keys()}
 
+# A generic version of the SuperElection listPR function that can be used for any party-vote dictionary.
 def listPR(stat,seats,*args):
-        prseats = {x: 0 for x in stat.keys()}
-        filledseats = 0
-        if "lr" in args or "lrd" in args:
-            quota = sum(stat.values())*1./seats
-            if "lrd" in args:
-                quota = 1 + sum(stat.values())/(seats+1.)
-            seatcredit = {x[0]:x[1]/quota for x in stat.items()}
-            prseats = {x[0]:int(x[1]) for x in seatcredit.items()}
-            seatcredit = dict(Counter(seatcredit)-Counter(prseats))
-            remseats = sorted(seatcredit.items(), key=lambda l:l[1], reverse=True)[0:seats-sum(prseats.values())]
-            for x in remseats :
-                prseats[x[0]] += 1;
-        elif "hh" in args:
-            prseats = {x: 1 for x in stat.keys()}
-            filledseats = len(stat)
-            runningvotes = dict(stat.items())
-            while filledseats < seats :
-                pick = max(runningvotes.items(),key=lambda l:l[1])[0]
-                runningvotes[pick] = runningvotes[pick]*math.sqrt(prseats[pick]*(prseats[pick]+1))/\
-                                     math.sqrt((prseats[pick]+1)*(prseats[pick]+2))
-                prseats[pick] += 1;
-                filledseats += 1;
-        else:
-            divinterval = 1
-            if len(args) > 0:
-                numargs = [x for x in list(args) if isinstance(x, numbers.Number)]
-                if len(numargs)>0:
-                    divinterval = numargs[0];
-            runningvotes = dict(stat.items())
-            while filledseats < seats :
-                pick = max(runningvotes.items(),key=lambda l:l[1])[0]
-                runningvotes[pick] = runningvotes[pick]*(1.+divinterval*prseats[pick])/(1.+divinterval*(prseats[pick]+1))
-                prseats[pick] += 1;
-                filledseats += 1;
-        if "s" in args :
-            vpcts = percentages(stat)
-            spcts = percentages(prseats)
-            print("An election is conducted for %d seats."%seats)
-            print("The votes and the corresponding seats are as follows:")
-            print("List  \tVotes\t(pct)\tSeats\t(pct)")
-            sortvs = sorted(prseats.keys(),key=lambda l:stat[l],reverse=True)
-            for v in sortvs :
-                print("\n%s :\t%d\t(%.2f)\t%d\t(%.2f)" % (v,stat[v],vpcts[v],prseats[v],spcts[v]))
-            print("\n")
-        return prseats
+    prseats = {x: 0 for x in stat.keys()}
+    filledseats = 0
+    if "lr" in args or "lrd" in args:
+        quota = sum(stat.values())*1./seats
+        if "lrd" in args:
+            quota = 1 + sum(stat.values())/(seats+1.)
+        seatcredit = {x[0]:x[1]/quota for x in stat.items()}
+        prseats = {x[0]:int(x[1]) for x in seatcredit.items()}
+        seatcredit = dict(Counter(seatcredit)-Counter(prseats))
+        remseats = sorted(seatcredit.items(), key=lambda l:l[1], reverse=True)[0:seats-sum(prseats.values())]
+        for x in remseats :
+            prseats[x[0]] += 1;
+    elif "hh" in args:
+        prseats = {x: 1 for x in stat.keys()}
+        filledseats = len(stat)
+        runningvotes = dict(stat.items())
+        while filledseats < seats :
+            pick = max(runningvotes.items(),key=lambda l:l[1])[0]
+            runningvotes[pick] = runningvotes[pick]*math.sqrt(prseats[pick]*(prseats[pick]+1))/\
+                                    math.sqrt((prseats[pick]+1)*(prseats[pick]+2))
+            prseats[pick] += 1;
+            filledseats += 1;
+    else:
+        divinterval = 1
+        if len(args) > 0:
+            numargs = [x for x in list(args) if isinstance(x, numbers.Number)]
+            if len(numargs)>0:
+                divinterval = numargs[0];
+        runningvotes = dict(stat.items())
+        while filledseats < seats :
+            pick = max(runningvotes.items(),key=lambda l:l[1])[0]
+            runningvotes[pick] = runningvotes[pick]*(1.+divinterval*prseats[pick])/(1.+divinterval*(prseats[pick]+1))
+            prseats[pick] += 1;
+            filledseats += 1;
+    if "s" in args :
+        vpcts = percentages(stat)
+        spcts = percentages(prseats)
+        print("An election is conducted for %d seats."%seats)
+        print("The votes and the corresponding seats are as follows:")
+        print("List  \tVotes\t(pct)\tSeats\t(pct)")
+        sortvs = sorted(prseats.keys(),key=lambda l:stat[l],reverse=True)
+        for v in sortvs :
+            print("\n%s :\t%d\t(%.2f)\t%d\t(%.2f)" % (v,stat[v],vpcts[v],prseats[v],spcts[v]))
+        print("\n")
+    return prseats
 
         
 class Voter() :
+    """Simulates a voter with potentially changing political opinions registered to vote in one or more elections.
+    
+    Attributes:
+        name : name string of the voter
+        position: the political compass (economic, social) position of the voter (default: random following a normal distribution)
+        regs: elections in which the voter is registered to vote
+    """
     def __init__(self,regs=[],econpos="rand",socpos="rand",name=""):
         self.name = name
         self.position = (econpos,socpos)
@@ -528,31 +596,41 @@ class Voter() :
         if socpos == "rand":
             self.position = (self.position[0],random.gauss(0,1))
         self.regs = list(regs)
+
+    # repositions the voter politically
     def pos(self,econpos="rand",socpos="rand"):
         self.position = (econpos, socpos)
         if econpos == "rand":
             self.position = (random.gauss(0, 0.5), self.position[1])
         if socpos == "rand":
             self.position = (self.position[0], random.gauss(0, 1))
+
+    # registers the voter in each election given as an argument
     def reg(self,*regs):
         self.regs += list(regs)
+
+    # de-registers the voter in each election given as an argument
     def dereg(self,*regs):
         for r in regs:
             self.regs.remove(r)
+
+    # replaces the registration of the voter with a new set of elections
     def newreg(self,*regs):
         self.regs = list(regs)
+
+    # adds the voter's vote to a specific election (/election/ parameter), or to every election the voter is registered for (default)
     def vote(self,election="all",*args):
         votedelecs = []
         if election=="all":
             votedelecs = self.regs
         else:
             votedelecs = [self.regs[election]]
-        for eleczzione in votedelecs:
-            posdists = {x: (self.position[0] - eleczzione.positions[x][0]) ** 2 \
-                        + (self.position[1] - eleczzione.positions[x][1]) ** 2 \
-                        for x in eleczzione.positions.keys()}
+        for elec in votedelecs:
+            posdists = {x: (self.position[0] - elec.positions[x][0]) ** 2 \
+                        + (self.position[1] - elec.positions[x][1]) ** 2 \
+                        for x in elec.positions.keys()}
             vote = [x[0] for x in sorted(posdists.items(), key=lambda l: l[1])]
             if "s" in args:
                 print(vote)
-            eleczzione.addVote(*vote)
+            elec.addVote(*vote)
 

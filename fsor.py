@@ -2,6 +2,8 @@ import random
 import numpy as np
 from collections import Counter
 
+# this file contains quick random election simulations
+
 def randvs(*args):
      return list("".join([a[0]*random.randrange(a[1],a[2]) for a in args]))
 
@@ -325,7 +327,7 @@ def withcoal(el,spktr):
 
 
 
-
+# Party maximum and minimum votes
 vlist = [("N",100,50000),("D",40000,100000),
          ("L",7000,32000),("C",3000,30000),("V",5000,34000),
          ("G",30000,110000),("K",1000,30000)]
@@ -333,7 +335,7 @@ vlist = [("N",100,50000),("D",40000,100000),
 uslist = [('D', 90000, 110000),('R', 80000, 120000),('L', 200, 10000),('G', 500, 6000)]
 
 
-parallel(225,[[fpps]],[(pr,225,1,5)],*vlist)
+parallel(300,[[fpps]],[(pr,60,1,5)],*vlist)
 
 
 

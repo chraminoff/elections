@@ -1,19 +1,29 @@
-import sys, parliament
-
-sys.path.insert(0,"C:\\Users\Christoffer\Downloads")
+import parliament
 
 from SuperElection import *
 
-e = SuperElection("Reichstagswahl")
+# THIS FILE CONTAINS AN EXPERIMENTAL MULTI-ELECTION SIMULATOR
+
+# Example usage:
+# elcyc(100, "borda", "fins") 
+# elcyc(650, "FPTP", "fins") # UK general elections
+# elcyc(577, "TRS", "fins", pres=(1,"TRS", "s")) # French legislative and presidential elections
+# elcyc(19, "IRVlistPR", 19, 2, "fins") # Proportional representation with the Sainte-Lague method in 19 19-seat districts
+
+
+e = SuperElection("Parliamentary election")
 vs = [Voter([e]) for i in range(int(700000*random.gauss(1,0.2)))]
 ncenter = random.random()
 nspread = 0.5
 n = lambda: random.gauss(ncenter,nspread)
-#vs.sort(key=lambda l: int(l.position[0]>0)*n() + 2*int(l.position[1]>0)*n())
+
 vs.sort(key=lambda l: l.position[0]*n()*random.gauss(1,nspread))
- #e.addPositions((u"Droite Mod\xe9rate",0.5,0.1),(u"Socialiste",-0.6,-0.2),(u"Liberal",0.2,-1),(u"Libertarien",1.2,-0.4),(u"Centriste",0,0),(u"Nationaliste",0.1,1.3),(u"Parti Vert",-0.7,-1.6),(u"Communiste",-2,-0.1),(u"Socialiste R\xe9volutionaire",-1.8,1),(u"National-Socialiste",-0.2,2.5))
+
+# parties and political positions commonly seen in multi-party democracies
 e.addPositions((u"Conservative",0.5,0.1),(u"Labour",-0.6,-0.2),(u"Liberal",0.2,-1),(u"Libertarian",1.2,-0.4),(u"Centrist",0,0),(u"Nationalist",0.1,1.3),(u"Green",-0.7,-1.6),(u"Communist",-2,-0.1),(u"Revolutionary Socialist",-1.8,1),(u"National Socialist",-0.2,2.5))
 
+# Configure and run an election,
+# parameters: number of districts (subelections), followed by runGenElection parameters for the electoral system
 def econf(nsub=50, *args):
     global vs
     global e
@@ -82,6 +92,7 @@ def partyrepos(el,vtrlist):
         if poll(vtrlist,el.positions,1000)[p] < Counter(percentages(el.firstprefs))[p]:
             el.positions[p] = ppos
             
+# most likely coalition in existing parliament
 def mlcoal(el):
     plur = max(el.seattotals.keys(),key=lambda l: el.seattotals[l])
     if el.seattotals[plur] > sum(el.seattotals.values())/2.:
@@ -97,8 +108,9 @@ prevresult = {"parl":Counter(),"sen":Counter(),"pres":Counter()}
 
 def necdis(etype="parl",*args):            
     global vs, e, prevresult
-    partyrepos(e,vs)
-    newpos(vs,e)
+    if e.seattotals :
+        partyrepos(e,vs)
+        newpos(vs,e)
     e = econf(*args)
     print(str(sorted({p:Counter(e.seattotals)[p]-prevresult[etype][p] for p in set(e.seattotals)|set(prevresult[etype])}.items(), key= lambda l: -Counter(e.seattotals)[l[0]])).replace("', ","', +").replace("+-","-"))
     if etype == "pres" and sum(e.seattotals.values()) == 1:
@@ -113,7 +125,7 @@ def necdis(etype="parl",*args):
     
 nelcyc = 0    
 
-   
+# run an entire electoral cycle, with possible separate presidential and upper house (senate) elections 
 def elcyc(*args,**kwargs):             
     global nelcyc
     nelcyc += 1 
@@ -126,9 +138,7 @@ def elcyc(*args,**kwargs):
         necdis("parl",*args)
         return mlcoal(e)
 
- 
       
-#plegend = {'Centriste':'black','Nationaliste':'darkblue','Liberal':'orange','Socialiste':'red','Parti Vert':'green',u'Droite Mod\xe9rate':'blue','Libertarien':'yellow','National-Socialiste':'brown',u'Socialiste R\xe9volutionaire':'purple','Communiste':'darkred'}
 plegend = {'Centrist':'black','Nationalist':'darkblue','Liberal':'orange','Labour':'red','Green':'green',u'Conservative':'blue','Libertarian':'yellow','National Socialist':'brown',u'Revolutionary Socialist':'purple','Communist':'darkred'}
 
 twoppos = {u"Conservative":(1,0.2),u"Labour":(-1,-0.2),u"Liberal":(0.1,-3),u"Libertarian":(10,-2),u"Nationalist":(0.1,6),u"Green":(-3,-9),u"Communist":(-10,-1),u"Revolutionary Socialist":(-9,3),u"National Socialist":(-0.3,11)}
