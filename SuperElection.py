@@ -12,6 +12,15 @@ class SuperElection(Election) :
         Election.__init__(self,name)
         self.subelections = []
 
+    def __getitem__(self,idx) :
+        if type(idx) is int:
+            return self.subelections[idx]
+        else:
+            for el in self.subelections:
+                if el.name == idx:
+                    return el
+        raise KeyError
+
     def addSub(self,elec,*args) :
         if "super" in args:
             self.subelections.append(SuperElection(elec))
@@ -44,7 +53,7 @@ class SuperElection(Election) :
         if "eq" in args :
             spsub = {x:seats/len(self.subelections) for x in range(len(self.subelections))}
             for s in range(len(self.subelections)) :
-                self.sub(s).numSubs(*([spsub[s]]+list(args)));
+                self.sub(s).numSubs(*([spsub[s]]+list(args)))
         else :
             spsub = {}
             if "hhdist" in args :
@@ -52,7 +61,7 @@ class SuperElection(Election) :
             else :
                 spsub = self.seatsPerSub(seats,"lr")
             for s in range(len(self.subelections)) :
-                self.sub(s).numSubs(*([spsub[s]]+list(args)));
+                self.sub(s).numSubs(*([spsub[s]]+list(args)))
         
 
     def clearSubs(self):
@@ -63,7 +72,7 @@ class SuperElection(Election) :
         clearSubs()
 
     def sub(self,i):
-        return self.subelections[i];
+        return self.subelections[i]
 
     def randsub(self):
         return random.choice(self.subelections)
@@ -82,7 +91,7 @@ class SuperElection(Election) :
         subseattotals = Counter()
         for sub in self.subelections :
             subseattotals += Counter(sub.seattotals)
-        return dict(subseattotals)
+        return subseattotals
 
     # assigned the combined votes in all sub-elections as the votes for the SuperElection as a whole
     def importSubVotes(self) :
@@ -125,24 +134,24 @@ class SuperElection(Election) :
                     vpersub = {x: int(self.totVote()*1./sum(vpersub.values())*vpersub[x]) for x in vpersub.keys()}
         nonfullsubs = list(range(len(self.subelections)))
         for v in self.votetotals.keys() :
-            remvs = self.votetotals[v];
+            remvs = self.votetotals[v]
             while remvs > 0 :
-                pick = 0;
+                pick = 0
                 if len(nonfullsubs) > 0 :
                     pick = random.choice(nonfullsubs)
                 else :
                     pick = random.randrange(len(self.subelections))
                 psub = self.subelections[pick]
-                give = 0;
+                give = 0
                 if len(nonfullsubs) > 0:
                     give = random.randint(min(remvs,minchunk,vpersub[pick]-psub.totVote()),\
                         min(maxchunk,remvs,vpersub[pick]-psub.totVote()))
                 else :
                     give = 1
-                psub.addVotes(give,*v);
-                remvs -= give;
+                psub.addVotes(give,*v)
+                remvs -= give
                 if  psub.totVote() == vpersub[pick] and len(nonfullsubs)>0:
-                    nonfullsubs.remove(pick);
+                    nonfullsubs.remove(pick)
 
     # repeats the process above for each subelection (that has subelections of its own)
     def subRandomSpreadVotes(self,*args) :
@@ -165,23 +174,29 @@ class SuperElection(Election) :
             else :
                 spsub = self.seatsPerSub([x for x in args if type(x) is int][0],"lr")
             for s in range(len(self.subelections)) :
-                self.sub(s).runElection(*(list(args)+[spsub[s]]));
+                self.sub(s).runElection(*(list(args)+[spsub[s]]))
         elif "eq" in args :
             seats = [x for x in args if type(x) is int][0]
             spsub = {x:seats/len(self.subelections) for x in range(len(self.subelections))}
             for s in range(len(self.subelections)) :
-                self.sub(s).runElection(*(list(args)+[spsub[s]]));
+                self.sub(s).runElection(*(list(args)+[spsub[s]]))
         else:
             for sub in self.subelections :
-                sub.runElection(*args);
+                sub.runElection(*args)
 
     # Simulates a multi-district general election (given that the votes have been added), takes the same arguments as runSubElections, plus "fins" and "stot" as options
-    def runGenElection(self,*args) :
+    def runGenElection(self,*args,**kwargs) :
         '''Function-specific args:
         "fins": print a string of the combined results of the SuperElection
-        "stot": return a per-party seat count dictionary'''
+        "stot": return a per-party seat count dictionary
+        
+        Keyword args:
+        "al": tuple of args indicating the electoral system for an at-large election
+        '''
         self.runSubElections(*args)
         self.importSubSeats()
+        if "al" in kwargs:
+            self.runElection(*kwargs["al"],supp=1)
         if "fins" in args :
             print(valsorted(self.firstprefs))
             print(valsorted({x[0]: round(x[1],2) for x in self.percentages().items()}))

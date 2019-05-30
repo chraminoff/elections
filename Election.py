@@ -65,20 +65,20 @@ class Election():
         if stat == "firstprefs" :
             stat = self.firstprefs
         sortedvotes = sorted(stat.items(), key=lambda r: r[1],reverse=True)
-        nofwinners = 0;
+        nofwinners = 0
         for v in sortedvotes:
             if v[1] >= sortedvotes[0][1] :
-                nofwinners += 1;
+                nofwinners += 1
             else:
                 break
         if nofwinners > 1 :
             print("Because of a tie, the winner has been chosen randomly.")
-            winner = random.choice(sortedvotes[0:nofwinners])[0];
+            winner = random.choice(sortedvotes[0:nofwinners])[0]
         else:
             winner = sortedvotes[0][0]
-        nextbestvote = 0;
+        nextbestvote = 0
         if len(sortedvotes) > 1:
-            nextbestvote = sortedvotes[1][1];
+            nextbestvote = sortedvotes[1][1]
         return (winner,sortedvotes[0][1],sortedvotes[0][1]-nextbestvote,nofwinners==1)
 
     def percentages(self,stat="firstprefs",rounding=-1) :
@@ -94,11 +94,11 @@ class Election():
     def preference(self,a,b,*args):
         tot = {a:0,b:0}
         for vt in self.votetotals.keys():
-            i = 0;
+            i = 0
             while vt[i] not in [a,b]:
-                i += 1;
+                i += 1
                 if i >= len(vt):
-                    break;
+                    break
             if i < len(vt):
                 tot[vt[i]] += self.votetotals[vt]
         if "s" in args :
@@ -145,7 +145,7 @@ class Election():
 
     # Two-Round System (more precisely the contingency vote)
     def TRS(self,*args) :
-        finnum = 2;
+        finnum = 2
         if len(args) > 0 :
             if type(args[0]) is int :
                 finnum = args[0]
@@ -169,10 +169,10 @@ class Election():
             return fstrndwinner
 
         finalists = []
-        nofpotwinners = 0;
+        nofpotwinners = 0
         for v in sortedvotes:
             if v[1] == sortedvotes[finnum-1][1] :
-                nofpotwinners += 1;
+                nofpotwinners += 1
             elif v[1] > sortedvotes[finnum-1][1] :
                 finalists.append(v[0])
             else:
@@ -182,7 +182,7 @@ class Election():
         if fincands > finnum :
             findices = random.sample(range(len(finalists),fincands),nofpotwinners)
             for n in range(finnum-len(finalists)) :
-                finalists.append(sortedvotes[0:fincands][findices[n]][0]);
+                finalists.append(sortedvotes[0:fincands][findices[n]][0])
         else :
             finalists = [x[0] for x in sortedvotes[0:finnum]]
 
@@ -195,11 +195,11 @@ class Election():
             print("advance to the second round.")
         finvotes = {f: 0 for f in finalists}
         for vt in self.votetotals.keys() :
-            i=0;
+            i=0
             while vt[i] not in finalists :
-                i += 1;
+                i += 1
                 if i >= len(vt) :
-                    break;
+                    break
             if i < len(vt) :
                 finvotes[vt[i]] += self.votetotals[vt]
         finalwinner = self.plurality(finvotes)
@@ -218,8 +218,8 @@ class Election():
     # Instant Runoff Voting
     def IRV(self,*args) :
         cands = self.firstprefs.keys()
-        eliminated = [];
-        count = 1;
+        eliminated = []
+        count = 1
         sortedvotes = sorted(self.firstprefs.items(), key=lambda r: r[1],reverse=True)
         pcts = self.percentages()
         if "s" in args :
@@ -238,29 +238,29 @@ class Election():
                     return {irvplur[0]: 1}
                 return irvplur
             if not sortedvotes[-1][1]==sortedvotes[-2][1]:
-                eliminated.append(sortedvotes[-1][0]);
-                del sortedvotes[-1];
+                eliminated.append(sortedvotes[-1][0])
+                del sortedvotes[-1]
             else :
                 eliminable = len([x for x in sortedvotes if x[1]==sortedvotes[-1][1]])
                 eliminee = random.randint(1,eliminable)
-                eliminated.append(sortedvotes[-eliminee][0]);
-                del sortedvotes[-eliminee];
+                eliminated.append(sortedvotes[-eliminee][0])
+                del sortedvotes[-eliminee]
             if "s" in args :
                 print("%s is eliminated at count %d."%(eliminated[-1],count))
-            count += 1;
+            count += 1
             stagevotes = {v[0]: 0 for v in sortedvotes}
             for vt in self.votetotals.keys() :
-                i=0;
+                i=0
                 while vt[i] in eliminated or vt[i] not in cands:
-                    i += 1;
+                    i += 1
                     if i >= len(vt) :
-                        break;
+                        break
                 if i < len(vt) :
                     stagevotes[vt[i]] += self.votetotals[vt]
-            del sortedvotes;
-            del pcts;
+            del sortedvotes
+            del pcts
             sortedvotes = sorted(stagevotes.items(), key=lambda r: r[1],reverse=True)
-            pcts = self.percentages(stagevotes);
+            pcts = self.percentages(stagevotes)
 
             if "s" in args :
                 print("The vote totals at count %d are as follows:"%count)
@@ -280,16 +280,16 @@ class Election():
         bcount = Counter()
         if "frac" in args :
             for vt in self.votetotals.keys():
-                i = 0;
+                i = 0
                 while i < len(vt):
-                    bcount[vt[i]] += self.votetotals[vt]/(i+1.);
-                    i += 1;
+                    bcount[vt[i]] += self.votetotals[vt]/(i+1.)
+                    i += 1
         else :
             for vt in self.votetotals.keys():
-                i = 0;
+                i = 0
                 while i < len(vt):
-                    bcount[vt[i]] += self.votetotals[vt] * (maxi - i);
-                    i += 1;
+                    bcount[vt[i]] += self.votetotals[vt] * (maxi - i)
+                    i += 1
         bordaplur = self.plurality(bcount)
         if "s" in args:
             sortedborda = valsorted(bcount)
@@ -405,7 +405,7 @@ class Election():
             seatcredit = dict(Counter(seatcredit)-Counter(prseats))
             remseats = sorted(seatcredit.items(), key=lambda l:l[1], reverse=True)[0:seats-sum(prseats.values())]
             for x in remseats :
-                prseats[x[0]] += 1;
+                prseats[x[0]] += 1
         elif "hh" in args:
             prseats = {x: 1 for x in self.firstprefs.keys()}
             filledseats = len(self.firstprefs)
@@ -414,20 +414,20 @@ class Election():
                 pick = max(runningvotes.items(),key=lambda l:l[1])[0]
                 runningvotes[pick] = runningvotes[pick]*math.sqrt(prseats[pick]*(prseats[pick]+1))/\
                                      math.sqrt((prseats[pick]+1)*(prseats[pick]+2))
-                prseats[pick] += 1;
-                filledseats += 1;
+                prseats[pick] += 1
+                filledseats += 1
         else:
             divinterval = 1
             if len(args) > 0:
                 numargs = [x for x in list(args) if isinstance(x, numbers.Number)]
                 if len(numargs)>0:
-                    divinterval = numargs[0];
+                    divinterval = numargs[0]
             runningvotes = dict(self.firstprefs.items())
             while filledseats < seats :
                 pick = max(runningvotes.items(),key=lambda l:l[1])[0]
                 runningvotes[pick] = runningvotes[pick]*(1.+divinterval*prseats[pick])/(1.+divinterval*(prseats[pick]+1))
-                prseats[pick] += 1;
-                filledseats += 1;
+                prseats[pick] += 1
+                filledseats += 1
         if "s" in args :
             vpcts = percentages(self.firstprefs)
             spcts = percentages(prseats)
@@ -466,24 +466,24 @@ class Election():
                     print("\nAll voters are represented at the final stage (%d)"%stage)
         while 0 in irvprseats.values():
             sv = valsorted(runningvotes)
-            eliminee = 1;
+            eliminee = 1
             if not sv[-1][1]==sv[-2][1]:
                 irvprseats.pop(sv[-1][0])
             else :
                 eliminable = len([x for x in sv if x[1]==sv[-1][1]])
                 eliminee = random.randint(1,eliminable)
-                irvprseats.pop(sv[-eliminee][0]);
+                irvprseats.pop(sv[-eliminee][0])
             if "s" in args :
                 print("%s is eliminated at stage %d."%(sv[-eliminee][0],stage))
-            stage += 1;
+            stage += 1
             cands = irvprseats.keys()
             runningvotes = {x:0 for x in cands}
             for vt in self.votetotals.keys() :
-                i=0;
+                i=0
                 while vt[i] not in cands:
-                    i += 1;
+                    i += 1
                     if i >= len(vt) :
-                        break;
+                        break
                 if i < len(vt) :
                     runningvotes[vt[i]] += self.votetotals[vt]
             irvprseats = listPR(runningvotes,seats,*[x for x in args if not x=="s"])
@@ -501,24 +501,35 @@ class Election():
         return irvprseats
 
     # Assigns the seat results under a specified electoral system as the seat total of the election
-    def runElection(self,*args) :
+    def runElection(self,*args,**kwargs) :
         '''args:
         first argument : electoral system, i.e. the name of the function implementing it, i.e. "FPTP" for first past the post, "IRV" for instant runoff voting etc.
         subsequent arguments: parameters of the electoral system (mainly used for listPR/IRVlistPR), which are passed on to the function implementing the electoral system
         '''
-        self.seattotals.clear()
+        if "supp" not in kwargs:
+            self.seattotals.clear()
+        
+        if "mstr" in args :
+            print(valsorted(self.firstprefs))
+            print(valsorted({x[0]: round(x[1],2) for x in self.percentages().items()}))
+            print("")
+            print(valsorted(self.seattotals))
+            print(valsorted({x[0]: round(x[1],2) for x in percentages(self.seattotals).items()}))
+            print("")
+
         if args[0] == "listPR" :
             if "pop" in args or "eq" in args:
-                self.seattotals = self.listPR(*([args[-1]]+list(args)[2:-1])) # when arguments are passed down from a SuperElection
+                self.seattotals += self.listPR(*([args[-1]]+list(args)[2:-1])) # when arguments are passed down from a SuperElection
             else:
-                self.seattotals = self.listPR(*list(args)[1:]);
+                self.seattotals += self.listPR(*list(args)[1:])
         elif args[0] == "IRVlistPR":
             if "pop" in args or "eq" in args:
-                self.seattotals = self.IRVlistPR(*([args[-1]]+list(args)[2:-1]))
+                self.seattotals += self.IRVlistPR(*([args[-1]]+list(args)[2:-1]))
             else:
-                self.seattotals = self.IRVlistPR(*list(args)[1:]);
+                self.seattotals += self.IRVlistPR(*list(args)[1:])
         else:
-            self.seattotals = getattr(self,args[0])(*(list(args)[1:]+["stot"]))
+            self.seattotals += getattr(self,args[0])(*(list(args)[1:]+["stot"]))
+        
 
 # List of dictionary items (key-value pairs) sorted in a decreasing order of value
 def valsorted(stat):
@@ -544,7 +555,7 @@ def listPR(stat,seats,*args):
         seatcredit = dict(Counter(seatcredit)-Counter(prseats))
         remseats = sorted(seatcredit.items(), key=lambda l:l[1], reverse=True)[0:seats-sum(prseats.values())]
         for x in remseats :
-            prseats[x[0]] += 1;
+            prseats[x[0]] += 1
     elif "hh" in args:
         prseats = {x: 1 for x in stat.keys()}
         filledseats = len(stat)
@@ -553,20 +564,20 @@ def listPR(stat,seats,*args):
             pick = max(runningvotes.items(),key=lambda l:l[1])[0]
             runningvotes[pick] = runningvotes[pick]*math.sqrt(prseats[pick]*(prseats[pick]+1))/\
                                     math.sqrt((prseats[pick]+1)*(prseats[pick]+2))
-            prseats[pick] += 1;
-            filledseats += 1;
+            prseats[pick] += 1
+            filledseats += 1
     else:
         divinterval = 1
         if len(args) > 0:
             numargs = [x for x in list(args) if isinstance(x, numbers.Number)]
             if len(numargs)>0:
-                divinterval = numargs[0];
+                divinterval = numargs[0]
         runningvotes = dict(stat.items())
         while filledseats < seats :
             pick = max(runningvotes.items(),key=lambda l:l[1])[0]
             runningvotes[pick] = runningvotes[pick]*(1.+divinterval*prseats[pick])/(1.+divinterval*(prseats[pick]+1))
-            prseats[pick] += 1;
-            filledseats += 1;
+            prseats[pick] += 1
+            filledseats += 1
     if "s" in args :
         vpcts = percentages(stat)
         spcts = percentages(prseats)
