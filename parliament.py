@@ -2,10 +2,9 @@
 
 #This file is based on the work of mechanical-snail found here: https://github.com/mechanical-snail/parliament
 
-import re, math, random, webcolors, wand
+import re, math, random, webcolors
 from collections import namedtuple
 from io import StringIO
-from PIL import Image
 
 PartySpec = namedtuple('PartySpec', ['name', 'seats', 'color'])
 

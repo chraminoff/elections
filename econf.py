@@ -164,7 +164,7 @@ def elcyc(*args,**kwargs):
 plegend = {'Black':'black','Navy':'navy','Orange':'orange','Pink':'pink','Green':'green','Cyan':'cyan','Yellow':'yellow','Brown':'brown','Maroon':'maroon','Crimson':'crimson', 'Blue':'blue','Purple':'purple','Red':'red'}
 
 # Political positions designed to create a two-party system
-twoppos = {"Cyan":(1,0.2),"Pink":(-1,-0.2),"Orange":(0.1,-3),"Yellow":(10,-2),"Navy":(0.1,6),"":(-3,-9),"Crimson":(-10,-1),"Maroon":(-9,3),"Brown":(-0.3,11)}
+twoppos = {"Cyan":(1,0.2),"Pink":(-1,-0.2),"Orange":(0.1,-3),"Yellow":(10,-2),"Navy":(0.1,6),"Green":(-3,-9),"Crimson":(-10,-1),"Maroon":(-9,3),"Brown":(-0.3,11)}
 
 # Political positions based on the 4 squares of the political compass
 polcpos = {"Red":(-2,2),"Green":(-2,-2),"Purple":(2,-2),"Blue":(2,2)}
